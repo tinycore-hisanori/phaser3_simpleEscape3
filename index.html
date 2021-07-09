@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.15.1/dist/phaser.min.js"></script>
+    <script src="messageBox.js"></script>
+    <script src="selectBox.js"></script>
+  </head>
+  <body>
+    <script>
+      class itemBar extends Phaser.GameObjects.Sprite {
+        constructor(scene, x, y, itemNo, itemImg) {
+          super(scene, x, y);
+          this.setTexture(itemImg);
+          this.setPosition(x, y);
+          scene.add.existing(this);
+          this.itemNo = itemNo;
+        }
+        preUpdate(time, delta) {}
+      }
+
+      class titleScene extends Phaser.Scene {
+        constructor() {
+          super({ key: "titleScene", active: true });
+        }
+        preload() {}
+        create() {
+          let text = this.add
+            .text(100, 100, " Escape Game3")
+            .setFontSize(64)
+            .setColor("#ff0");
+          let clickButton = this.add.text(200, 300, "START TO CLICK", {
+            fill: "#0f0"
+          });
+          clickButton.setStroke("#0000ff", 4);
+          clickButton.setFontSize("40px");
+          clickButton.setInteractive();
+          clickButton.on(
+            "pointerdown",
+            () => {
+              this.scene.start("MyScene1");
+            },
+            this
+          );
+        }
+      }
+      class endingScene extends Phaser.Scene {
+        constructor() {
+          super({ key: "endingScene", active: false });
+        }
+        var;
+        preload() {}
+        create() {
+          if (bEnding == 0) {
+            let bg001 = this.add.tileSprite(400, 300, 800, 600, "bg003");
+            let labelImg = this.add.sprite(400, 150, "gameclear");
+          } else {
+            let bg001 = this.add.tileSprite(400, 300, 800, 600, "bg002");
+          }
+        }
+      }
+      class MyScene1 extends Phaser.Scene {
+        constructor() {
+          super({ key: "MyScene1", active: false });
+        }
+        preload() {
+          this.load.image("bg001", "./bg2.png");
+          this.load.image("bg002", "./800x600_gameover.png");
+          this.load.image("bg003", "./bg4.png");
+          this.load.image("hotbar", "./600x70_hotbar.png");
+          this.load.image("item_hammer", "./60x60_hammer.png");
+          this.load.image("item_key", "./60x60_key.png");
+
+          this.load.image("gameclear", "./gameclear.png");
+
+          this.load.spritesheet("door", "./spriteDoors.png", {
+            frameWidth: 151,
+            frameHeight: 420
+          });
+          this.load.spritesheet("bottle", "./240x80_bottle.png", {
+            frameWidth: 80,
+            frameHeight: 80
+          });
+
+          this.load.audio("se_break", "glassBroken.mp3");
+          this.load.audio("se_key", "doorOpen.mp3");
+          this.load.audio("se_coutdown", "countdown.mp3");
+          this.load.audio("se_boom", "boom.mp3");
+          this.load.audio("se_clap", "clap.mp3");
+        }
+
+        create() {
+          currentScene = this;
+
+          seBroken = this.sound.add("se_break");
+          seDoor = this.sound.add("se_key");
+          seCoutdown = this.sound.add("se_coutdown");
+          seBoom = this.sound.add("se_boom");
+          seClap = this.sound.add("se_clap");
+          let bg001 = this.add.tileSprite(400, 300, 800, 600, "bg001");
+          let hotbar = this.add.sprite(400, 50, "hotbar");
+
+          txtTime = this.add
+            .text(600, 550, "time:--")
+            .setFontSize(30)
+            .setStroke("#ffffff", 2)
+            .setColor("#ffffff");
+
+          door = this.add.sprite(70, 302, "door");
+          bottle = this.add.sprite(520, 450, "bottle");
+
+          barItems = this.add.group();
+          this.input.on("dragstart", function (
+            pointer,
+            gameObject,
+            dragX,
+            dragY
+          ) {
+            itemFirstX = gameObject.x;
+            itemFirstY = gameObject.y;
+            console.log("START");
+          });
+          this.input.on("dragend", function (
+            pointer,
+            gameObject,
+            dragX,
+            dragY
+          ) {
+            console.log(
+              "no=" + gameObject.itemNo + ", X=" + pointer.x + ",y=" + pointer.y
+            );
+            checkDropPoint(pointer.x, pointer.y, gameObject.itemNo);
+            gameObject.x = itemFirstX;
+            gameObject.y = itemFirstY;
+          });
+
+          this.input.on("drag", function (pointer, gameObject, dragX, dragY) {
+            gameObject.x = dragX;
+            gameObject.y = dragY;
+          });
+
+          msgBox = new messageBox(this);
+          msgBox.show("俺", "・・・ここはどこだ？");
+          messageMode = 1;
+          this.input.on(
+            "pointerdown",
+            function (pointer) {
+              var touchX = pointer.x;
+              var touchY = pointer.y;
+              console.log("x=" + touchX + ",y=" + touchY);
+              if (messageMode != 0) {
+                if (messageMode == 1) {
+                  msgBox.show("俺", "なんか時計の音がするな・・・。");
+                  bGaming = true;
+                  messageMode = 99;
+                } else if (messageMode == 99) {
+                  msgBox.hide();
+                  messageMode = 0;
+                } else if (messageMode == 100) {
+                  bEnding = 0;
+                  msgBox.hide();
+                  seClap.play();
+                  this.scene.start("endingScene");
+                } else if (messageMode == 101) {
+                  bEnding = 1;
+                  msgBox.hide();
+                  seBoom.play();
+                  this.scene.start("endingScene");
+                }
+              } else {
+                checkClickPoint(touchX, touchY);
+              }
+            },
+            this
+          );
+        }
+        update() {
+          if (bGaming == true) {
+            cntSecond = (cntSecond + 1) % 60;
+            if (cntSecond == 0) {
+              seCoutdown.play();
+              txtTime.text = "time:" + cntRemain;
+              cntRemain = cntRemain - 1;
+              if (cntRemain <= 0) {
+                txtTime.text = "time:XX";
+                bGaming = false;
+                msgBox.show("俺", "あ！！なにかが爆発して・・・!?");
+                messageMode = 101;
+              }
+            }
+          }
+        }
+      }
+
+      function checkDropPoint(x, y, itemNo) {
+        if (x >= 485 && y >= 410 && x <= 563 && y <= 485) {
+          if (stateBottle == 0 && itemNo == 1) {
+            seBroken.play();
+            msgBox.show("俺", "ハンマーで壊したら\r\n何かでてきたぞ。");
+            bottle.setFrame(1);
+            stateBottle = 1;
+            messageMode = 99;
+          }
+        } else if (x >= 0 && y >= 95 && x <= 140 && y <= 460) {
+          if (stateDoor == 0 && itemNo == 1) {
+            msgBox.show("俺", "硬くてハンマーでは\r\n壊すのは無理だな。");
+            messageMode = 99;
+          } else if (stateDoor == 0 && itemNo == 2) {
+            msgBox.show("俺", "この鍵を使って・・・\r\nドアが開いたぞ!!");
+            seDoor.play();
+            door.setFrame(1);
+            stateDoor = 1;
+            messageMode = 99;
+          }
+        }
+      }
+
+      function checkClickPoint(x, y) {
+        if (x >= 231 && y >= 145 && x <= 360 && y <= 320) {
+          if (stateChest == 0) {
+            msgBox.show("俺", "なにか入ってる。\r\nハンマーを見つけたぞ。");
+            addHotBarItem(0);
+            stateChest = 1;
+          } else {
+            msgBox.show("俺", "もう何も入ってないな");
+          }
+          messageMode = 99;
+        } else if (x >= 485 && y >= 410 && x <= 563 && y <= 485) {
+          if (stateBottle == 0) {
+            msgBox.show("俺", "中に何かあるが、ひっかかっていて\r\nとれないぞ");
+          } else if (stateBottle == 1) {
+            msgBox.show("俺", "鍵をゲットしたぞ。");
+            bottle.setFrame(2);
+            addHotBarItem(1);
+            stateBottle = 2;
+          } else {
+            msgBox.show("俺", "破片が危ないな\r\nもう何もないぞ。");
+          }
+          messageMode = 99;
+        } else if (x >= 0 && y >= 95 && x <= 140 && y <= 460) {
+          if (stateDoor == 0) {
+            msgBox.show("俺", "ドアには鍵がかかっている");
+            messageMode = 99;
+          } else {
+            msgBox.show("俺", "よし、脱出だ！！");
+            messageMode = 100;
+            bGaming = false;
+          }
+        } else if (x >= 347 && y >= 415 && x <= 460 && y <= 500) {
+          msgBox.show(
+            "俺",
+            "囲炉裏には火がはいっている。\r\n暖かいが、なにか火薬のにおいがするな・・・"
+          );
+          messageMode = 99;
+        }
+      }
+
+      function addHotBarItem(index) {
+        barItems.add(
+          new itemBar(
+            currentScene,
+            135 + barItems.getChildren().length * 66,
+            50,
+            itemInfo[index].no,
+            itemInfo[index].img
+          ).setInteractive({
+            draggable: true
+          })
+        );
+      }
+      var bGaming = false;
+      var cntSecond = 0,
+        cntRemain = 30;
+      var door;
+      var bottle;
+      var currentScene;
+      var stateChest = 0; //0:ハンマーはいってる,1:もうない
+      var stateBottle = 0; //0:鍵はいってる,1:鍵むきだし2:もうない
+      var stateDoor = 0; //0:鍵かかってる,1:鍵開いた
+      var itemInfo = [
+        { no: 1, img: "item_hammer" },
+        { no: 2, img: "item_key" }
+      ];
+      var config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        backgroundColor: "#4488aa",
+        audio: { disableWebAudio: true },
+        scene: [titleScene, MyScene1, endingScene]
+      };
+      var bEnding = 0;
+      var itemFirstX, itemFirstY;
+      var barItems;
+      var msgBox, txtTime;
+      var game = new Phaser.Game(config);
+      var seBroken, seDoor, seCoutdown, seBoom, seClap;
+      var messageMode = 0;
+    </script>
+  </body>
+</html>

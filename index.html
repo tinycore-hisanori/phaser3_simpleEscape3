@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.15.1/dist/phaser.min.js"></script>
     <script src="messageBox.js"></script>
-    <script src="selectBox.js"></script>
   </head>
   <body>
     <script>
@@ -64,20 +63,19 @@
           super({ key: "MyScene1", active: false });
         }
         preload() {
-          this.load.image("bg001", "./bg2.png");
+          this.load.image("bg001", "./800x600_bg.png");
           this.load.image("bg002", "./800x600_gameover.png");
-          this.load.image("bg003", "./bg4.png");
+          this.load.image("bg003", "./800x600_outside.png");
           this.load.image("hotbar", "./600x70_hotbar.png");
           this.load.image("item_hammer", "./60x60_hammer.png");
           this.load.image("item_key", "./60x60_key.png");
 
           this.load.image("gameclear", "./gameclear.png");
-
-          this.load.spritesheet("door", "./spriteDoors.png", {
-            frameWidth: 151,
-            frameHeight: 420
+          this.load.spritesheet("door", "./doors.png", {
+            frameWidth: 150,
+            frameHeight: 250
           });
-          this.load.spritesheet("bottle", "./240x80_bottle.png", {
+          this.load.spritesheet("bottle", "./bottles.png", {
             frameWidth: 80,
             frameHeight: 80
           });
@@ -106,7 +104,7 @@
             .setStroke("#ffffff", 2)
             .setColor("#ffffff");
 
-          door = this.add.sprite(70, 302, "door");
+          door = this.add.sprite(500, 230, "door");
           bottle = this.add.sprite(520, 450, "bottle");
 
           barItems = this.add.group();
@@ -129,7 +127,9 @@
             console.log(
               "no=" + gameObject.itemNo + ", X=" + pointer.x + ",y=" + pointer.y
             );
-            checkDropPoint(pointer.x, pointer.y, gameObject.itemNo);
+            if (messageMode < 100) {
+              checkDropPoint(pointer.x, pointer.y, gameObject.itemNo);
+            }
             gameObject.x = itemFirstX;
             gameObject.y = itemFirstY;
           });
@@ -168,7 +168,9 @@
                   this.scene.start("endingScene");
                 }
               } else {
-                checkClickPoint(touchX, touchY);
+                if (messageMode < 100) {
+                  checkClickPoint(touchX, touchY);
+                }
               }
             },
             this
@@ -185,6 +187,7 @@
                 txtTime.text = "time:XX";
                 bGaming = false;
                 msgBox.show("俺", "あ！！なにかが爆発して・・・!?");
+
                 messageMode = 101;
               }
             }
@@ -201,7 +204,7 @@
             stateBottle = 1;
             messageMode = 99;
           }
-        } else if (x >= 0 && y >= 95 && x <= 140 && y <= 460) {
+        } else if (x >= 432 && y >= 102 && x <= 572 && y <= 355) {
           if (stateDoor == 0 && itemNo == 1) {
             msgBox.show("俺", "硬くてハンマーでは\r\n壊すのは無理だな。");
             messageMode = 99;
@@ -237,7 +240,7 @@
             msgBox.show("俺", "破片が危ないな\r\nもう何もないぞ。");
           }
           messageMode = 99;
-        } else if (x >= 0 && y >= 95 && x <= 140 && y <= 460) {
+        } else if (x >= 432 && y >= 102 && x <= 572 && y <= 355) {
           if (stateDoor == 0) {
             msgBox.show("俺", "ドアには鍵がかかっている");
             messageMode = 99;

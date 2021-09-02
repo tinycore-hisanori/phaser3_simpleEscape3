@@ -2,38 +2,27 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.15.1/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="messageBox.js"></script>
   </head>
   <body>
     <script>
-      class itemBar extends Phaser.GameObjects.Sprite {
-        constructor(scene, x, y, itemNo, itemImg) {
-          super(scene, x, y);
-          this.setTexture(itemImg);
-          this.setPosition(x, y);
-          scene.add.existing(this);
-          this.itemNo = itemNo;
-        }
-        preUpdate(time, delta) {}
-      }
-
       class titleScene extends Phaser.Scene {
         constructor() {
           super({ key: "titleScene", active: true });
         }
-        preload() {}
         create() {
           let text = this.add
-            .text(100, 100, " Escape Game3")
+            .text(100, 100, " Escape Game3\r\n with hotbar")
             .setFontSize(64)
             .setColor("#ff0");
           let clickButton = this.add.text(200, 300, "START TO CLICK", {
             fill: "#0f0"
           });
-          clickButton.setStroke("#0000ff", 4);
-          clickButton.setFontSize("40px");
-          clickButton.setInteractive();
+          clickButton
+            .setStroke("#0000ff", 4)
+            .setFontSize("40px")
+            .setInteractive();
           clickButton.on(
             "pointerdown",
             () => {
@@ -47,12 +36,14 @@
         constructor() {
           super({ key: "endingScene", active: false });
         }
-        var;
-        preload() {}
         create() {
           if (bEnding == 0) {
+            //Game Clear
             let bg001 = this.add.tileSprite(400, 300, 800, 600, "bg003");
           } else {
+            //Game Over
+            seBoom = this.sound.add("se_boom");
+            seBoom.play();
             let bg001 = this.add.tileSprite(400, 300, 800, 600, "bg002");
           }
         }
@@ -68,8 +59,6 @@
           this.load.image("hotbar", "./600x70_hotbar.png");
           this.load.image("item_hammer", "./60x60_hammer.png");
           this.load.image("item_key", "./60x60_key.png");
-
-          this.load.image("gameclear", "./gameclear.png");
           this.load.spritesheet("door", "./doors.png", {
             frameWidth: 150,
             frameHeight: 250
@@ -78,35 +67,24 @@
             frameWidth: 80,
             frameHeight: 80
           });
-
-          this.load.audio("se_break", "glassBroken.mp3");
-          this.load.audio("se_key", "doorOpen.mp3");
-          this.load.audio("se_coutdown", "countdown.mp3");
-          this.load.audio("se_boom", "boom.mp3");
-          this.load.audio("se_clap", "clap.mp3");
+          this.load.audio("se_break", "ガラスが割れる2.mp3");
+          this.load.audio("se_key", "ドアを開ける1.mp3");
+          this.load.audio("se_coutdown", "カーソル移動1.mp3");
+          this.load.audio("se_boom", "爆発1.mp3");
         }
 
         create() {
-          currentScene = this;
-
           seBroken = this.sound.add("se_break");
           seDoor = this.sound.add("se_key");
           seCoutdown = this.sound.add("se_coutdown");
-          seBoom = this.sound.add("se_boom");
-          seClap = this.sound.add("se_clap");
+
+          nowGameScene = this;
           let bg001 = this.add.tileSprite(400, 300, 800, 600, "bg001");
           let hotbar = this.add.sprite(400, 50, "hotbar");
-
-          txtTime = this.add
-            .text(600, 550, "time:--")
-            .setFontSize(30)
-            .setStroke("#ffffff", 2)
-            .setColor("#ffffff");
-
           door = this.add.sprite(500, 230, "door");
           bottle = this.add.sprite(520, 450, "bottle");
+          msgBox = new messageBox(this);
 
-          barItems = this.add.group();
           this.input.on("dragstart", function (
             pointer,
             gameObject,
@@ -117,17 +95,30 @@
             itemFirstY = gameObject.y;
             console.log("START");
           });
-          this.input.on("dragend", function (
-            pointer,
-            gameObject,
-            dragX,
-            dragY
-          ) {
-            console.log(
-              "no=" + gameObject.itemNo + ", X=" + pointer.x + ",y=" + pointer.y
-            );
-            if (messageMode < 100) {
-              checkDropPoint(pointer.x, pointer.y, gameObject.itemNo);
+          this.input.on("dragend", function (pointer, gameObject) {
+            let nEvt = checkEventArea(pointer.x, pointer.y);
+            console.log("EVT=" + nEvt + "no = " + gameObject.itemNo);
+            if (nEvt == EVENT_BOTL) {
+              if (gameObject.itemNo == 0 && stateBottle == 0) {
+                //No.0= ハンマー
+                bottle.setFrame(1);
+                stateBottle = 1;
+                seBroken.play();
+                msgBox.show("俺", "瓶を壊したら何かでてきたぞ");
+                messageMode = 99;
+              }
+            } else if (nEvt == EVENT_DOOR) {
+              if (gameObject.itemNo == 1 && stateDoor == 0) {
+                //No.2カギを使う
+                door.setFrame(1);
+                stateDoor = 1;
+                seDoor.play();
+                msgBox.show("俺", "ドアが開いたぞ!!");
+                messageMode = 99;
+              } else if (gameObject.itemNo == 0 && stateDoor == 0) {
+                msgBox.show("俺", "ハンマーではビクともしない頑丈なドアだ");
+                messageMode = 99;
+              }
             }
             gameObject.x = itemFirstX;
             gameObject.y = itemFirstY;
@@ -138,129 +129,133 @@
             gameObject.y = dragY;
           });
 
-          msgBox = new messageBox(this);
-          msgBox.show("俺", "・・・ここはどこだ？");
-          messageMode = 1;
           this.input.on(
             "pointerdown",
             function (pointer) {
-              var touchX = pointer.x;
-              var touchY = pointer.y;
-              console.log("x=" + touchX + ",y=" + touchY);
-              if (messageMode != 0) {
-                if (messageMode == 1) {
-                  msgBox.show("俺", "なんか時計の音がするな・・・。");
-                  bGaming = true;
-                  messageMode = 99;
-                } else if (messageMode == 99) {
-                  msgBox.hide();
-                  messageMode = 0;
-                } else if (messageMode == 100) {
-                  bEnding = 0;
-                  msgBox.hide();
-                  seClap.play();
-                  this.scene.start("endingScene");
-                } else if (messageMode == 101) {
-                  bEnding = 1;
-                  msgBox.hide();
-                  seBoom.play();
-                  this.scene.start("endingScene");
+              var x = pointer.x;
+              var y = pointer.y;
+              console.log("x=" + x + ",y=" + y + "evt=" + checkEventArea(x, y));
+              if (messageMode == 0) {
+                let nEvt = checkEventArea(x, y);
+                if (nEvt != -1) {
+                  if (nEvt == EVENT_TANA) {
+                    if (stateChest == 0) {
+                      msgBox.show(
+                        "俺",
+                        "棚の中になにかある。ハンマーをゲットしたぞ。"
+                      );
+                      addHotBarItem(0); //アイテム番号0の「ハンマー」：をホットバーに追加
+                      stateChest = 1;
+                    } else {
+                      msgBox.show("俺", "棚の中にはもう何もないぞ");
+                    }
+                    messageMode = 99;
+                  } else if (nEvt == EVENT_BOTL) {
+                    if (stateBottle == 0) {
+                      msgBox.show(
+                        "俺",
+                        "瓶がある。中に何かはいってるがとれないぞ。"
+                      );
+                      messageMode = 99;
+                    } else if (stateBottle == 1) {
+                      msgBox.show("俺", "割れた瓶の中からカギをゲットしたぞ");
+                      addHotBarItem(1); //No.1のカギをホットバーに追加
+                      stateBottle = 2;
+                      bottle.setFrame(2);
+                      messageMode = 99;
+                    } else {
+                      msgBox.show("俺", "瓶の破片があぶないな・・・");
+                      messageMode = 99;
+                    }
+                  } else if (nEvt == EVENT_DOOR) {
+                    if (stateDoor == 0) {
+                      msgBox.show("俺", "カギがかかっている");
+                      messageMode = 99;
+                    } else {
+                      msgBox.show("俺", "よし脱出するぞ！");
+                      messageMode = 100;
+                    }
+                  } else if (nEvt == EVENT_FIRE) {
+                    msgBox.show("俺", "あちち、火がついてるな。");
+                    messageMode = 99;
+                  }
                 }
               } else {
-                if (messageMode < 100) {
-                  checkClickPoint(touchX, touchY);
+                switch (messageMode) {
+                  case 1:
+                    msgBox.show(
+                      "俺",
+                      "嫌な予感がする。早くここからでなければ・・・"
+                    );
+                    messageMode = 99;
+                    break;
+                  case 99:
+                    messageMode = 0;
+                    msgBox.hide();
+                    break;
+                  case 100: //ゲームクリア
+                    messageMode = 0;
+                    msgBox.hide();
+                    bEnding = 0; //Cleear
+                    this.scene.start("endingScene");
+                    break;
+                  case 101: //ゲームオーバー
+                    messageMode = 0;
+                    msgBox.hide();
+                    bEnding = 1; //Dead End
+                    this.scene.start("endingScene");
+                    break;
                 }
               }
             },
             this
           );
+          msgBox.show("俺", "どうやら閉じ込められたみたいだ");
+          messageMode = 1;
+
+          txtTime = this.add
+            .text(600, 550, "time:--")
+            .setFontSize(30)
+            .setStroke("#ffffff", 2)
+            .setColor("#ffffff");
         }
         update() {
-          if (bGaming == true) {
+          if (messageMode < 100) {
             cntSecond = (cntSecond + 1) % 60;
             if (cntSecond == 0) {
-              seCoutdown.play();
               txtTime.text = "time:" + cntRemain;
+              seCoutdown.play();
               cntRemain = cntRemain - 1;
               if (cntRemain <= 0) {
                 txtTime.text = "time:XX";
-                bGaming = false;
                 msgBox.show("俺", "あ！！なにかが爆発して・・・!?");
-
                 messageMode = 101;
               }
             }
           }
         }
       }
-
-      function checkDropPoint(x, y, itemNo) {
-        if (x >= 485 && y >= 410 && x <= 563 && y <= 485) {
-          if (stateBottle == 0 && itemNo == 1) {
-            seBroken.play();
-            msgBox.show("俺", "ハンマーで壊したら\r\n何かでてきたぞ。");
-            bottle.setFrame(1);
-            stateBottle = 1;
-            messageMode = 99;
-          }
-        } else if (x >= 432 && y >= 102 && x <= 572 && y <= 355) {
-          if (stateDoor == 0 && itemNo == 1) {
-            msgBox.show("俺", "硬くてハンマーでは\r\n壊すのは無理だな。");
-            messageMode = 99;
-          } else if (stateDoor == 0 && itemNo == 2) {
-            msgBox.show("俺", "この鍵を使って・・・\r\nドアが開いたぞ!!");
-            seDoor.play();
-            door.setFrame(1);
-            stateDoor = 1;
-            messageMode = 99;
-          }
+      var itemInfo = [
+        { no: 0, img: "item_hammer" },
+        { no: 1, img: "item_key" }
+      ];
+      class itemBar extends Phaser.GameObjects.Sprite {
+        constructor(scene, x, y, itemNo, itemImg) {
+          super(scene, x, y);
+          this.setTexture(itemImg);
+          this.setPosition(x, y);
+          scene.add.existing(this);
+          this.itemNo = itemNo;
         }
+        preUpdate(time, delta) {}
       }
-
-      function checkClickPoint(x, y) {
-        if (x >= 231 && y >= 145 && x <= 360 && y <= 320) {
-          if (stateChest == 0) {
-            msgBox.show("俺", "なにか入ってる。\r\nハンマーを見つけたぞ。");
-            addHotBarItem(0);
-            stateChest = 1;
-          } else {
-            msgBox.show("俺", "もう何も入ってないな");
-          }
-          messageMode = 99;
-        } else if (x >= 485 && y >= 410 && x <= 563 && y <= 485) {
-          if (stateBottle == 0) {
-            msgBox.show("俺", "中に何かあるが、ひっかかっていて\r\nとれないぞ");
-          } else if (stateBottle == 1) {
-            msgBox.show("俺", "鍵をゲットしたぞ。");
-            bottle.setFrame(2);
-            addHotBarItem(1);
-            stateBottle = 2;
-          } else {
-            msgBox.show("俺", "破片が危ないな\r\nもう何もないぞ。");
-          }
-          messageMode = 99;
-        } else if (x >= 432 && y >= 102 && x <= 572 && y <= 355) {
-          if (stateDoor == 0) {
-            msgBox.show("俺", "ドアには鍵がかかっている");
-            messageMode = 99;
-          } else {
-            msgBox.show("俺", "よし、脱出だ！！");
-            messageMode = 100;
-            bGaming = false;
-          }
-        } else if (x >= 347 && y >= 415 && x <= 460 && y <= 500) {
-          msgBox.show(
-            "俺",
-            "囲炉裏には火がはいっている。\r\n暖かいが、なにか火薬のにおいがするな・・・"
-          );
-          messageMode = 99;
-        }
-      }
-
       function addHotBarItem(index) {
+        if (barItems == null) {
+          barItems = nowGameScene.add.group();
+        }
         barItems.add(
           new itemBar(
-            currentScene,
+            nowGameScene,
             135 + barItems.getChildren().length * 66,
             50,
             itemInfo[index].no,
@@ -270,19 +265,32 @@
           })
         );
       }
+      var EVENT_NONE = -1;
+      var EVENT_TANA = 0;
+      var EVENT_DOOR = 1;
+      var EVENT_FIRE = 2;
+      var EVENT_BOTL = 3;
+      function checkEventArea(x, y) {
+        ret = EVENT_NONE;
+        if (x >= 160 && y >= 188 && x <= 345 && y <= 356) {
+          ret = EVENT_TANA;
+        } else if (x >= 428 && y >= 108 && x <= 570 && y <= 354) {
+          ret = EVENT_DOOR;
+        } else if (x >= 320 && y >= 436 && x <= 474 && y <= 508) {
+          ret = EVENT_FIRE;
+        } else if (x >= 480 && y >= 408 && x <= 556 && y <= 484) {
+          ret = EVENT_BOTL;
+        }
+        return ret;
+      }
+
       var bGaming = false;
       var cntSecond = 0,
         cntRemain = 30;
-      var door;
-      var bottle;
-      var currentScene;
-      var stateChest = 0; //0:ハンマーはいってる,1:もうない
-      var stateBottle = 0; //0:鍵はいってる,1:鍵むきだし2:もうない
-      var stateDoor = 0; //0:鍵かかってる,1:鍵開いた
-      var itemInfo = [
-        { no: 1, img: "item_hammer" },
-        { no: 2, img: "item_key" }
-      ];
+      var door, bottle, barItems, msgBox, txtTime, nowGameScene;
+      var stateChest = 0,
+        stateBottle = 0,
+        stateDoor = 0;
       var config = {
         type: Phaser.AUTO,
         width: 800,
@@ -291,10 +299,9 @@
         audio: { disableWebAudio: true },
         scene: [titleScene, MyScene1, endingScene]
       };
-      var bEnding = 0;
-      var itemFirstX, itemFirstY;
-      var barItems;
-      var msgBox, txtTime;
+      var bEnding = 0,
+        itemFirstX = 0,
+        itemFirstY = 0;
       var game = new Phaser.Game(config);
       var seBroken, seDoor, seCoutdown, seBoom, seClap;
       var messageMode = 0;

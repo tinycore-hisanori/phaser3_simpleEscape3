@@ -39,6 +39,8 @@
         create() {
           if (bEnding == 0) {
             //Game Clear
+            seBoom = this.sound.add("se_good");
+            seBoom.play();
             let bg001 = this.add.tileSprite(400, 300, 800, 600, "bg003");
           } else {
             //Game Over
@@ -67,12 +69,12 @@
             frameWidth: 80,
             frameHeight: 80
           });
-          this.load.audio("se_break", "ガラスが割れる2.mp3");
-          this.load.audio("se_key", "ドアを開ける1.mp3");
-          this.load.audio("se_coutdown", "カーソル移動1.mp3");
-          this.load.audio("se_boom", "爆発1.mp3");
+          this.load.audio("se_break", "glass-break2.mp3");
+          this.load.audio("se_key", "door-open1.mp3");
+          this.load.audio("se_coutdown", "cursor1.mp3");
+          this.load.audio("se_good", "trumpet1.mp3");
+          this.load.audio("se_boom", "bomb1.mp3");
         }
-
         create() {
           seBroken = this.sound.add("se_break");
           seDoor = this.sound.add("se_key");
@@ -109,7 +111,7 @@
               }
             } else if (nEvt == EVENT_DOOR) {
               if (gameObject.itemNo == 1 && stateDoor == 0) {
-                //No.2カギを使う
+                //No.1カギを使う
                 door.setFrame(1);
                 stateDoor = 1;
                 seDoor.play();
@@ -123,7 +125,6 @@
             gameObject.x = itemFirstX;
             gameObject.y = itemFirstY;
           });
-
           this.input.on("drag", function (pointer, gameObject, dragX, dragY) {
             gameObject.x = dragX;
             gameObject.y = dragY;
@@ -135,16 +136,14 @@
               var x = pointer.x;
               var y = pointer.y;
               console.log("x=" + x + ",y=" + y + "evt=" + checkEventArea(x, y));
+
               if (messageMode == 0) {
                 let nEvt = checkEventArea(x, y);
                 if (nEvt != -1) {
                   if (nEvt == EVENT_TANA) {
                     if (stateChest == 0) {
-                      msgBox.show(
-                        "俺",
-                        "棚の中になにかある。ハンマーをゲットしたぞ。"
-                      );
-                      addHotBarItem(0); //アイテム番号0の「ハンマー」：をホットバーに追加
+                      msgBox.show("俺", "棚の中からハンマーをゲットしたぞ");
+                      addHotBarItem(0); //No.0の「ハンマー」をホットバーに追加
                       stateChest = 1;
                     } else {
                       msgBox.show("俺", "棚の中にはもう何もないぞ");
@@ -172,7 +171,7 @@
                       msgBox.show("俺", "カギがかかっている");
                       messageMode = 99;
                     } else {
-                      msgBox.show("俺", "よし脱出するぞ！");
+                      msgBox.show("俺", "よし脱出するぞ！ ");
                       messageMode = 100;
                     }
                   } else if (nEvt == EVENT_FIRE) {
@@ -196,7 +195,7 @@
                   case 100: //ゲームクリア
                     messageMode = 0;
                     msgBox.hide();
-                    bEnding = 0; //Cleear
+                    bEnding = 0; //Clear
                     this.scene.start("endingScene");
                     break;
                   case 101: //ゲームオーバー
@@ -212,7 +211,6 @@
           );
           msgBox.show("俺", "どうやら閉じ込められたみたいだ");
           messageMode = 1;
-
           txtTime = this.add
             .text(600, 550, "time:--")
             .setFontSize(30)
@@ -228,7 +226,7 @@
               cntRemain = cntRemain - 1;
               if (cntRemain <= 0) {
                 txtTime.text = "time:XX";
-                msgBox.show("俺", "あ！！なにかが爆発して・・・!?");
+                msgBox.show("俺", "あ！！ なにかが爆発して・・・!?");
                 messageMode = 101;
               }
             }
@@ -283,7 +281,6 @@
         }
         return ret;
       }
-
       var bGaming = false;
       var cntSecond = 0,
         cntRemain = 30;
